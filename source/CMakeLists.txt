@@ -122,6 +122,7 @@ set(PLUGIN_DIRS_EXTRA
     PitchDetection
     StkUGens
     TJUGens
+    EmergentUGens
 )
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND ${CMAKE_CXX_COMPILER_VERSION} MATCHES "^6.0.")
@@ -346,6 +347,12 @@ endif()
 if (NOVA_DISK_IO)
     add_subdirectory(NovaDiskIO)
 endif()
+
+# EmergentUGens
+file(GLOB EmergentUGensSources EmergentUgens/*.cpp)
+BUILD_PLUGIN(EmergentUgens
+"${EmergentUGensSources}"
+             "" "EmergentUGens")
 
 #--------
 # INSTALL

@@ -1,7 +1,9 @@
+#include "SC_World.h"
+
 #ifndef _STLALLOCATOR_H
 #define _STLALLOCATOR_H
 
-template <typename T>
+template <typename T, World* world>
 class stl_allocator
 {
 public:
@@ -11,16 +13,16 @@ public:
   typedef T value_type;
   stl_allocator() {}
   ~stl_allocator() {}
-  template <class U> stl_allocator(const stl_allocator<U>&) {}
+  template <class U, World* world> stl_allocator(const stl_allocator<U, world>&) {}
   pointer allocate(size_type n)
   {
-    return (pointer)malloc(n * sizeof(T));
+    return (pointer)RTAlloc(world, n * sizeof(T));
   }
   void deallocate(pointer p, size_type n)
   {
     // Free knows how big the block is
     (void)&n;
-    free(p);
+    RTFree(world, p);
   }
 };
 

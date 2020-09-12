@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <sstream>
+#include "STLAllocator.hpp"
 
 #ifndef _CA_H
 #define _CA_H
@@ -85,16 +86,15 @@ public:
 
 private:
   const unsigned int size;
-  std::vector<bool> space;
+  std::vector<bool, stl_allocator<bool>> space;
 };
-
 
 template <typename SpaceType>
 class CA
 {
 public:
   using space_imp = SpaceType;
-  using Cell_space = std::vector<SpaceType>;
+  using Cell_space = std::vector<SpaceType, stl_allocator<SpaceType>>;
 
   CA() {}
 

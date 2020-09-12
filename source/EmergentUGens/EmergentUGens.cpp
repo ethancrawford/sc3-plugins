@@ -3,10 +3,11 @@
 #include "BoidFlock.hpp"
 #include "Boid.hpp"
 #include "Pvector.hpp"
-#include "STLAllocator.hpp"
 #include <algorithm>
 
 using Automata = CA<Iteration_Vector>;
+
+World* g_pWorld = nullptr;
 
 // InterfaceTable contains pointers to functions in the host (server).
 static InterfaceTable* ft;
@@ -26,6 +27,8 @@ public:
 	EmergentUGen(int seed = 0, int num_waves = 1) : m_seed{ seed }, m_num_waves{ num_waves } {
 		// Initialise a pointer to the random number buffer
 		rand_buf = ctor_get_buf(in0(0));
+		// Initialise global reference to world
+		g_pWorld = world;
 
 		// Initialise variables for sine wave oscillators
 		int tableSize2 = ft->mSineSize;

@@ -139,9 +139,7 @@ public:
     return next_iteration;
   }
 
-  //void store(SndBuf* seq_buf, int active_waves)
-
-  void store(int* sarray, int active_waves)
+  void store(int* m_partials_flags, int active_waves)
   {
     int iterations = (int)(active_waves / size);
     int i = 0, j = 0;
@@ -151,8 +149,7 @@ public:
         if (((i * size) + j) >= active_waves) {
           keep_going = false;
         }
-        //seq_buf->data[(i * size) + j] = (float)space[i].get(j);
-        sarray[(i * size) + j] = (float)space[i].get(j);
+        m_partials_flags[(i * size) + j] = (float)space[i].get(j);
         j++;
       }
       i++;

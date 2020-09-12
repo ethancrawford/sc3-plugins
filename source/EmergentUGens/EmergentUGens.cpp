@@ -3,7 +3,6 @@
 #include "BoidFlock.hpp"
 #include "Boid.hpp"
 #include "Pvector.hpp"
-#include <algorithm>
 
 using Automata = CA<Iteration_Vector>;
 
@@ -109,26 +108,24 @@ protected:
 struct ElementaryCA : public EmergentUGen {
 public:
 	ElementaryCA() : EmergentUGen((int)in0(6), (int)in0(3) * (int)in0(4)) {
-		// Initialise a list of flags to enable various frequency partials in the final output
-		//seq_buf = ctor_get_buf(in0(5));
 		if (!m_random) {
-			binary_from_integer();
+			// Initialise a list of flags to enable various frequency partials in the final output
+			get_binary_array();
 		}
-		runAutomaton();
+		run_automaton();
 		set_calc_function<ElementaryCA, &ElementaryCA::next_a>();
 
 		next_a(1);
 	}
 
 	~ElementaryCA() {
-		RTFree(world, sarray);
+		RTFree(world, m_partials_flags);
 	}
 
 private:
 	const int m_wolfram_code = (int)in0(2);
 	const int m_num_columns = (int)in0(3);
 	const int m_num_rows = (int)in0(4);
-
 	float m_width = in0(7);
 	float m_odd_skew = in0(8);
 	float m_even_skew = in0(9);
@@ -136,24 +133,20 @@ private:
 	float m_balance = in0(11);
 	const bool m_random = ((int)in0(12)) > 0;
 
-	//SndBuf* seq_buf;
-
-	int* sarray = (int*)RTAlloc(world, m_num_columns * m_num_rows * sizeof(int));
+	int* m_partials_flags = (int*)RTAlloc(world, m_num_columns * m_num_rows * sizeof(int));
 	Automata automata;
 
-	void binary_from_integer() {
+	void get_binary_array() {
 		int i = 0;
 		int seq = (int)in0(5);
 		while (seq >= 0 && i < m_num_columns) {
-
-			// storing remainder in binary array 
-			sarray[m_num_columns - 1 - i] = seq % 2;
+			m_partials_flags[m_num_columns - 1 - i] = seq % 2;
 			seq = seq / 2;
 			i++;
 		}
 	}
 
-	void runAutomaton() {
+	void run_automaton() {
 		Iteration_Vector initial_state(m_num_columns);
 		if (m_random) {
 			for (int i = 0; i < m_num_columns; i++) {
@@ -161,12 +154,9 @@ private:
 				initial_state.set(i, r);
 			}
 		}
-		else
-		{
+		else {
 			for (int i = 0; i < m_num_columns; i++) {
-				//initial_state.set(i, (int)seq_buf->data[i]);
-				initial_state.set(i, sarray[i]);
-
+				initial_state.set(i, m_partials_flags[i]);
 			}
 		}
 		automata.init(m_wolfram_code, m_num_columns, m_num_rows, initial_state);
@@ -190,19 +180,14 @@ private:
 		}
 		int32 lomask = m_lomask;
 
-		//automata.store(seq_buf, active_waves);
-
-		automata.store(sarray, active_waves);
+		// Store automata state in partials flags array
+		automata.store(m_partials_flags, active_waves);
 
 		for (int i = 0; i < inNumSamples; ++i) {
 			float out_val = 0.0;
 			for (int j = 0; j < active_waves; j++) {
 				if (i == 0) {
 					waves[j].amp = 0.0;
-					//if (j == 0) {
-					//	waves[j].amp = 1.0;
-					//}
-					//else {
 						waves[j].amp = powf(j+1, -m_amp_tilt);// * powf(e.filter, i);
 						if (j % 2 == 0) {
 							if (m_balance > 0.0) {
@@ -214,15 +199,13 @@ private:
 								waves[j].amp *= 1.0 + m_balance;
 							}
 						}
-					//}
 
-					waves[j].i_freq = (int32)(m_cpstoinc * setPartial(freqin, j));
+					waves[j].i_freq = (int32)(m_cpstoinc * set_partial(freqin, j));
 					waves[j].phaseinc = waves[j].i_freq + (int32)(CALCSLOPE(phasein, m_phasein) * m_radtoinc);
 					m_phasein = phasein;
 				}
 				waves[j].sin_val = lookupi1(table0, table1, waves[j].phase, lomask);
-				//out_val += (waves[j].sin_val * waves[j].amp * seq_buf->data[j] * sc_reciprocal((float)active_waves));
-				out_val += (waves[j].sin_val * waves[j].amp * sarray[j] * sc_reciprocal((float)active_waves));
+				out_val += (waves[j].sin_val * waves[j].amp * m_partials_flags[j] * sc_reciprocal((float)active_waves));
 				waves[j].phase += waves[j].phaseinc;
 			}
 			outBuf[i] = out_val;
@@ -233,7 +216,7 @@ private:
 		}
 	}
 
-	float setPartial(float freqin, int idx) {
+	float set_partial(float freqin, int idx) {
 		float ii = idx + 1;
 		if (idx % 2 == 0) {
 			ii += m_even_skew;
@@ -248,6 +231,10 @@ private:
 struct Flock : public EmergentUGen {
 public:
 	Flock() : EmergentUGen((int)in0(3), (int)in0(4)) {
+		/* 
+		  Initialise a number of 'boids' in the simulation
+		  using given limits for velocity
+		*/
 		for (int i = 0; i < m_num_waves; i++) {
 			float vx = cos(buf_rand(i)) / 8.0;
 			float vy = sin(buf_rand(i + 1)) / 8.0;
@@ -277,12 +264,20 @@ private:
 		}
 		int32 lomask = m_lomask;
 
+		// Run emergent behaviour algorithm
 		flock.flocking();
 
 		for (int i = 0; i < inNumSamples; ++i) {
 			float out_val = 0.0;
 			for (int j = 0; j < m_num_waves; j++) {
 				if (i == 0) {
+					/*
+						Modulate the frequency with one of the following properties of the boid, multiplied by an 'amount':
+						 - current angle of heading
+						 - horizontal position
+						 - vertical position
+						 - velocity
+          */
 					waves[j].i_freq = (int32)(m_cpstoinc * (freqin + (flock.getBoid(j).angle(flock.getBoid(j).velocity))));
 					waves[j].phaseinc = waves[j].i_freq + (int32)(CALCSLOPE(phasein, m_phasein) * m_radtoinc);
 					m_phasein = phasein;

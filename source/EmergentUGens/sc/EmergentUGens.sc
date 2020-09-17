@@ -5,7 +5,7 @@ ElementaryCA : UGen {
 }
 
 Flock : UGen {
-    *ar { arg bufnum = 0, freq = 440.0, iphase = 0.0, seed = 0, num_boids = 20;
-        ^this.multiNew('audio', bufnum, freq, iphase, seed, num_boids)
+    *ar { arg bufnum = 0, freq = 440.0, iphase = 0.0, seed = 0, num_boids = 20, min_speed = -2.0, max_speed = 3.5, note_mod_source = 0, note_mod_amount = 1;
+        ^this.multiNew('audio', bufnum, freq, iphase, seed, num_boids, min_speed, max_speed, note_mod_source, note_mod_amount)
     }
 }

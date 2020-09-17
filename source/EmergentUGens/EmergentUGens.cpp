@@ -100,6 +100,10 @@ protected:
 	float buf_rand(int idx) {
 		return rand_buf->data[(idx + m_seed) % rand_buf->samples];
 	}
+    
+    float lerp(float low, float high, float t) {
+        return low + t * (high - low);
+    }
 };
 
 struct ElementaryCA : public EmergentUGen {
@@ -233,8 +237,10 @@ public:
 		  using given limits for velocity
 		*/
 		for (int i = 0; i < m_num_waves; i++) {
-			float vx = cos(buf_rand(i)) / 8.0;
-			float vy = sin(buf_rand(i + 1)) / 8.0;
+			//float vx = cos(buf_rand(i)) / 8.0;
+			//float vy = sin(buf_rand(i + 1)) / 8.0;
+            float vx = cos(lerp(m_min_speed, m_max_speed, buf_rand(i)));
+            float vy = sin(lerp(m_min_speed, m_max_speed, buf_rand(i + 1)));
 			Boid b((WIDTH / 2.0), (HEIGHT / 2.0), vx, vy);
 			flock.addBoid(b);
 		}
@@ -246,7 +252,11 @@ private:
 	const float WIDTH = 1000.0;
 	const float HEIGHT = 1000.0;
 	BoidFlock flock;
-
+    float m_min_speed = in0(5);
+    float m_max_speed = in0(6);
+    const int m_note_mod_source = (int)in0(7);
+    const float m_note_mod_amount = (float)in0(8);
+    
 	void next_a(int inNumSamples) {
 		float* table0 = ft->mSineWavetable;
 		float* table1 = table0 + 1;
@@ -263,19 +273,34 @@ private:
 
 		// Run emergent behaviour algorithm
 		flock.flocking();
-
+        
+        float m_mod_exp = 0.0;
 		for (int i = 0; i < inNumSamples; ++i) {
 			float out_val = 0.0;
 			for (int j = 0; j < m_num_waves; j++) {
 				if (i == 0) {
 					/*
 						Modulate the frequency with one of the following properties of the boid, multiplied by an 'amount':
-						 - current angle of heading
 						 - horizontal position
 						 - vertical position
-						 - velocity
+						 - speed
+                         - current angle of heading
           */
-					waves[j].i_freq = (int32)(m_cpstoinc * (freqin + (flock.getBoid(j).angle(flock.getBoid(j).velocity))));
+                    switch(m_note_mod_source) {
+                        case 0:
+                            m_mod_exp = flock.getBoid(j).location.x / 10.0;
+                            break;
+                        case 1:
+                            m_mod_exp = flock.getBoid(j).location.y / 10.0;
+                            break;
+                        case 2:
+                            m_mod_exp = flock.getBoid(j).velocity.magnitude()*50.0;
+                            break;
+                        case 3:
+                            m_mod_exp = flock.getBoid(j).angle(flock.getBoid(j).velocity);
+                            break;
+                    }
+					waves[j].i_freq = (int32)(m_cpstoinc * (freqin + (m_mod_exp * m_note_mod_amount)));
 					waves[j].phaseinc = waves[j].i_freq + (int32)(CALCSLOPE(phasein, m_phasein) * m_radtoinc);
 					m_phasein = phasein;
 				}

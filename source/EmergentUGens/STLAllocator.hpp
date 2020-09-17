@@ -1,9 +1,14 @@
 #include "SC_World.h"
+#include "SC_InterfaceTable.h"
 
 #ifndef _STLALLOCATOR_H
 #define _STLALLOCATOR_H
 
 extern World* g_pWorld;
+
+// InterfaceTable contains pointers to functions in the host (server).
+static InterfaceTable* ft;
+
 
 template <typename T>
 class stl_allocator

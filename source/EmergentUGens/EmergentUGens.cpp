@@ -8,9 +8,6 @@ using Automata = CA<Iteration_Vector>;
 
 World* g_pWorld = nullptr;
 
-// InterfaceTable contains pointers to functions in the host (server).
-static InterfaceTable* ft;
-
 // A struct to hold data used to calculate each generated sine wave value
 struct SinWave {
 	int32 m_phase;

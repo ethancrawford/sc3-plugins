@@ -15,7 +15,7 @@
 // ======== Boid Functions from Boid.h =========== //
 // =============================================== //
 
-Boid::Boid(float x, float y, float vx, float vy, bool predCheck)
+Boid::Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck)
 {
   predator = predCheck;
   if (predCheck == true) {
@@ -25,8 +25,8 @@ Boid::Boid(float x, float y, float vx, float vy, bool predCheck)
     velocity = Pvector(vx + 1.0, vy + 1.0);
   }
   else {
-    maxSpeed = 3.5;
-    maxForce = 0.5;
+    maxSpeed = _max_speed;
+    maxForce = _max_force;
     //velocity = Pvector(rand() % 3 - 2, rand() % 3 - 2);
     velocity = Pvector(vx, vy);
   }

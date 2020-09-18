@@ -39,7 +39,7 @@ public:
     float maxSpeed;
     float maxForce;
   //Boid() {}
-    Boid(float x, float y, float vx, float vy, bool predCheck);
+    Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck);
     void applyForce(Pvector force);
     // Three Laws that boids follow
     Pvector Separation(vector<Boid, stl_allocator<Boid>> Boids);

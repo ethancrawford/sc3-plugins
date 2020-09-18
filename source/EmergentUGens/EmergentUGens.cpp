@@ -245,7 +245,7 @@ public:
       float vx = cos(lerp(m_min_speed, m_max_speed, buf_rand(i)));
       float vy = sin(lerp(m_min_speed, m_max_speed, buf_rand(i + 1)));
       //bool predator = buf_rand(i) <= 0.5;
-      Boid b((WIDTH / 2.0), (HEIGHT / 2.0), vx, vy, false);
+      Boid b((WIDTH / 2.0), (HEIGHT / 2.0), vx, vy, m_max_speed, m_max_force, false);
       flock.addBoid(b);
 		}
 		set_calc_function<Flock, &Flock::next_a>();
@@ -258,8 +258,9 @@ private:
 	BoidFlock flock;
   float m_min_speed = in0(5);
   float m_max_speed = in0(6);
-  const int m_note_mod_source = (int)in0(7);
-  const float m_note_mod_amount = (float)in0(8);
+	float m_max_force = in0(7);
+  const int m_note_mod_source = (int)in0(8);
+  float m_note_mod_amount;
     
 	void next_a(int inNumSamples) {
 		float* table0 = ft->mSineWavetable;
@@ -269,7 +270,7 @@ private:
 		// get phase from struct and store it in a local variable.
 		// The optimizer will cause it to be loaded it into a register.
 		float phasein = in0(2);
-
+		m_note_mod_amount = in0(9);
 		for (int i = 0; i < m_num_waves; i++) {
 			waves[i].phase = waves[i].m_phase;
 		}

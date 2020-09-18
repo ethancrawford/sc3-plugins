@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "Boid.hpp"
-
+#include "STLAllocator.hpp"
 #ifndef FLOCK_H_
 #define FLOCK_H_
 
@@ -13,7 +13,7 @@
 
 class BoidFlock {
 public:
-    vector<Boid> flock;
+    vector<Boid, stl_allocator<Boid>> flock;
     //Constructors
     //BoidFlock() {}
     // Accessor functions

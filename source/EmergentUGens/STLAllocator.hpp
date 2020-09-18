@@ -5,10 +5,7 @@
 #define _STLALLOCATOR_H
 
 extern World* g_pWorld;
-
-// InterfaceTable contains pointers to functions in the host (server).
-static InterfaceTable* ft;
-
+extern InterfaceTable* ft;
 
 template <typename T>
 class stl_allocator

@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <iostream>
+#include "STLAllocator.hpp"
 
 #ifndef BOID_H_
 #define BOID_H_
@@ -38,18 +39,17 @@ public:
     float maxSpeed;
     float maxForce;
   //Boid() {}
-    Boid(float x, float y, float vx, float vy);
-    Boid(float x, float y, bool predCheck);
+    Boid(float x, float y, float vx, float vy, bool predCheck);
     void applyForce(Pvector force);
     // Three Laws that boids follow
-    Pvector Separation(vector<Boid> Boids);
-    Pvector Alignment(vector<Boid> Boids);
-    Pvector Cohesion(vector<Boid> Boids);
+    Pvector Separation(vector<Boid, stl_allocator<Boid>> Boids);
+    Pvector Alignment(vector<Boid, stl_allocator<Boid>> Boids);
+    Pvector Cohesion(vector<Boid, stl_allocator<Boid>> Boids);
     //Functions involving SFML and visualisation linking
     Pvector seek(Pvector v);
-    void run(vector <Boid> v);
+    void run(vector<Boid, stl_allocator<Boid>> v);
     void update();
-    void flock(vector <Boid> v);
+    void flock(vector<Boid, stl_allocator<Boid>> v);
     void borders();
     float angle(Pvector v);
 };

@@ -8,35 +8,30 @@
 #define PI 3.141592635
 
 // Sets values of x and y for Pvector
-void Pvector::set(float i, float o)
-{
+void Pvector::set(float i, float o) {
   x = i;
   y = o;
 }
 
-void Pvector::addVector(Pvector v)
-{
+void Pvector::addVector(Pvector v) {
   x += v.x;
   y += v.y;
 }
 
 // Adds to a Pvector by a constant number
-void Pvector::addScalar(float s)
-{
+void Pvector::addScalar(float s) {
   x += s;
   y += s;
 }
 
 // Subtracts 2 vectors
-void Pvector::subVector(Pvector v)
-{
+void Pvector::subVector(Pvector v) {
   x -= v.x;
   y -= v.y;
 }
 
 // Subtracts two vectors and returns the difference as a vector
-Pvector Pvector::subTwoVector(Pvector v, Pvector v2)
-{
+Pvector Pvector::subTwoVector(Pvector v, Pvector v2) {
   Pvector tmp;
   v.x -= v2.x;
   v.y -= v2.y;
@@ -45,42 +40,36 @@ Pvector Pvector::subTwoVector(Pvector v, Pvector v2)
 }
 
 // Adds to a Pvector by a constant number
-void Pvector::subScalar(float s)
-{
+void Pvector::subScalar(float s) {
   x -= s;
   y -= s;
 }
 
 // Multiplies 2 vectors
-void Pvector::mulVector(Pvector v)
-{
+void Pvector::mulVector(Pvector v) {
   x *= v.x;
   y *= v.y;
 }
 
 // Adds to a Pvector by a constant number
-void Pvector::mulScalar(float s)
-{
+void Pvector::mulScalar(float s) {
   x *= s;
   y *= s;
 }
 
 // Divides 2 vectors
-void Pvector::divVector(Pvector v)
-{
+void Pvector::divVector(Pvector v) {
   x /= v.x;
   y /= v.y;
 }
 
 // Adds to a Pvector by a constant number
-void Pvector::divScalar(float s)
-{
+void Pvector::divScalar(float s) {
   x /= s;
   y /= s;
 }
 
-void Pvector::limit(double max)
-{
+void Pvector::limit(double max) {
   double size = magnitude();
 
   if (size > max) {
@@ -89,8 +78,7 @@ void Pvector::limit(double max)
 }
 
 // Calculates the distance between the first Pvector and second Pvector
-float Pvector::distance(Pvector v)
-{
+float Pvector::distance(Pvector v) {
   float dx = x - v.x;
   float dy = y - v.y;
   float dist = sqrt(dx * dx + dy * dy);
@@ -98,27 +86,23 @@ float Pvector::distance(Pvector v)
 }
 
 // Calculates the dot product of a vector
-float Pvector::dotProduct(Pvector v)
-{
+float Pvector::dotProduct(Pvector v) {
   float dot = x * v.x + y * v.y;
   return dot;
 }
 
 // Calculates magnitude of referenced object
-float Pvector::magnitude()
-{
+float Pvector::magnitude() {
   return sqrt(x * x + y * y);
 }
 
-void Pvector::setMagnitude(float x)
-{
+void Pvector::setMagnitude(float x) {
   normalize();
   mulScalar(x);
 }
 
 // Calculate the angle between Pvector 1 and Pvector 2
-float Pvector::angleBetween(Pvector v)
-{
+float Pvector::angleBetween(Pvector v) {
   if (x == 0 && y == 0) return 0.0f;
   if (v.x == 0 && v.y == 0) return 0.0f;
 
@@ -138,8 +122,7 @@ float Pvector::angleBetween(Pvector v)
 }
 
 // normalize divides x and y by magnitude if it has a magnitude.
-void Pvector::normalize()
-{
+void Pvector::normalize() {
   float m = magnitude();
 
   if (m > 0) {
@@ -151,8 +134,7 @@ void Pvector::normalize()
 }
 
 // Creates and returns a copy of the Pvector used as a parameter
-Pvector Pvector::copy(Pvector v)
-{
+Pvector Pvector::copy(Pvector v) {
   Pvector copy(v.x, v.y);
   return copy;
 }

@@ -5,7 +5,6 @@
 #include "Boid.hpp"
 
 // Global Variables for borders()
-// desktopTemp gets screen resolution of PC running the program
 
 #define w_height 1000
 #define w_width 1000
@@ -15,19 +14,16 @@
 // ======== Boid Functions from Boid.h =========== //
 // =============================================== //
 
-Boid::Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck)
-{
+Boid::Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck) {
   predator = predCheck;
   if (predCheck == true) {
-    maxSpeed = 7.5;
-    maxForce = 0.5;
-    //velocity = Pvector(rand() % 3 - 1, rand() % 3 - 1);
+    maxSpeed = _max_speed * 1.5;
+    maxForce = _max_force * 1.5;
     velocity = Pvector(vx + 1.0, vy + 1.0);
   }
   else {
     maxSpeed = _max_speed;
     maxForce = _max_force;
-    //velocity = Pvector(rand() % 3 - 2, rand() % 3 - 2);
     velocity = Pvector(vx, vy);
   }
   acceleration = Pvector(0, 0);
@@ -35,15 +31,13 @@ Boid::Boid(float x, float y, float vx, float vy, float _max_speed, float _max_fo
 }
 
 // Adds force Pvector to current force Pvector
-void Boid::applyForce(Pvector force)
-{
+void Boid::applyForce(Pvector force) {
   acceleration.addVector(force);
 }
 
 // Separation
 // Keeps boids from getting too close to one another
-Pvector Boid::Separation(vector<Boid, stl_allocator<Boid>> boids)
-{
+Pvector Boid::Separation(vector<Boid, rt_allocator<Boid>> boids) {
   // Distance of field of vision for separation between boids
   float desiredseparation = 20;
   Pvector steer(0, 0);
@@ -98,8 +92,7 @@ Pvector Boid::Separation(vector<Boid, stl_allocator<Boid>> boids)
 // Alignment
 // Calculates the average velocity of boids in the field of vision and
 // manipulates the velocity of the current boid in order to match it
-Pvector Boid::Alignment(vector<Boid, stl_allocator<Boid>> Boids)
-{
+Pvector Boid::Alignment(vector<Boid, rt_allocator<Boid>> Boids) {
   float neighbordist = 50; // Field of vision
 
   Pvector sum(0, 0);
@@ -131,8 +124,7 @@ Pvector Boid::Alignment(vector<Boid, stl_allocator<Boid>> Boids)
 // Cohesion
 // Finds the average location of nearby boids and manipulates the
 // steering force to move in that direction.
-Pvector Boid::Cohesion(vector<Boid, stl_allocator<Boid>> Boids)
-{
+Pvector Boid::Cohesion(vector<Boid, rt_allocator<Boid>> Boids) {
   float neighbordist = 50;
   Pvector sum(0, 0);
   int count = 0;
@@ -155,8 +147,7 @@ Pvector Boid::Cohesion(vector<Boid, stl_allocator<Boid>> Boids)
 
 // Limits the maxSpeed, finds necessary steering force and
 // normalizes vectors
-Pvector Boid::seek(Pvector v)
-{
+Pvector Boid::seek(Pvector v) {
   Pvector desired;
   desired.subVector(v);  // A vector pointing from the location to the target
   // Normalize desired and scale to maximum speed
@@ -170,8 +161,7 @@ Pvector Boid::seek(Pvector v)
 
 // Modifies velocity, location, and resets acceleration with values that
 // are given by the three laws.
-void Boid::update()
-{
+void Boid::update() {
   //To make the slow down not as abrupt
   acceleration.mulScalar(.4);
   // Update velocity
@@ -186,16 +176,14 @@ void Boid::update()
 // Run flock() on the flock of boids.
 // This applies the three rules, modifies velocities accordingly, updates data,
 // and corrects boids which are sitting outside of the SFML window
-void Boid::run(vector<Boid, stl_allocator<Boid>> v)
-{
+void Boid::run(vector<Boid, rt_allocator<Boid>> v) {
   flock(v);
   update();
   borders();
 }
 
 // Applies the three laws to the flock of boids
-void Boid::flock(vector<Boid, stl_allocator<Boid>> v)
-{
+void Boid::flock(vector<Boid, rt_allocator<Boid>> v) {
   Pvector sep = Separation(v);
   Pvector ali = Alignment(v);
   Pvector coh = Cohesion(v);
@@ -211,18 +199,16 @@ void Boid::flock(vector<Boid, stl_allocator<Boid>> v)
 
 // Checks if boids go out of the window and if so, wraps them around to
 // the other side.
-void Boid::borders()
-{
-  if (location.x < 2)    location.x += w_width;
-  if (location.y < 2)    location.y += w_height;
+void Boid::borders() {
+  if (location.x < 2) location.x += w_width;
+  if (location.y < 2) location.y += w_height;
   if (location.x > 998) location.x -= w_width;
   if (location.y > 998) location.y -= w_height;
 }
 
 // Calculates the angle for the velocity of a boid which allows the visual
 // image to rotate in the direction that it is going in.
-float Boid::angle(Pvector v)
-{
+float Boid::angle(Pvector v) {
   // From the definition of the dot product
   float angle = (float)(atan2(v.x, -v.y) * 180 / PI);
   return angle;

@@ -2,7 +2,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <iostream>
-#include "STLAllocator.hpp"
+#include "RTAllocator.hpp"
 
 #ifndef BOID_H_
 #define BOID_H_
@@ -21,7 +21,7 @@
 //  applyForce(Pvector force): Adds the given vector to acceleration
 //
 //  Pvector Separation(vector<Boid> Boids): If any other boids are within a
-//      given distance, Separation computes a a vector that distances the
+//      given distance, Separation computes a vector that distances the
 //      current boid from the boids that are too close.
 //
 //  Pvector Alignment(vector<Boid> Boids): Computes a vector that causes the
@@ -32,26 +32,25 @@
 
 class Boid {
 public:
-    bool predator;
-    Pvector location;
-    Pvector velocity;
-    Pvector acceleration;
-    float maxSpeed;
-    float maxForce;
-  //Boid() {}
-    Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck);
-    void applyForce(Pvector force);
-    // Three Laws that boids follow
-    Pvector Separation(vector<Boid, stl_allocator<Boid>> Boids);
-    Pvector Alignment(vector<Boid, stl_allocator<Boid>> Boids);
-    Pvector Cohesion(vector<Boid, stl_allocator<Boid>> Boids);
-    //Functions involving SFML and visualisation linking
-    Pvector seek(Pvector v);
-    void run(vector<Boid, stl_allocator<Boid>> v);
-    void update();
-    void flock(vector<Boid, stl_allocator<Boid>> v);
-    void borders();
-    float angle(Pvector v);
+  bool predator;
+  Pvector location;
+  Pvector velocity;
+  Pvector acceleration;
+  float maxSpeed;
+  float maxForce;
+  Boid(float x, float y, float vx, float vy, float _max_speed, float _max_force, bool predCheck);
+  void applyForce(Pvector force);
+  // Three Laws that boids follow
+  Pvector Separation(vector<Boid, rt_allocator<Boid>> Boids);
+  Pvector Alignment(vector<Boid, rt_allocator<Boid>> Boids);
+  Pvector Cohesion(vector<Boid, rt_allocator<Boid>> Boids);
+
+  Pvector seek(Pvector v);
+  void run(vector<Boid, rt_allocator<Boid>> v);
+  void update();
+  void flock(vector<Boid, rt_allocator<Boid>> v);
+  void borders();
+  float angle(Pvector v);
 };
 
 #endif

@@ -13,9 +13,10 @@ World* g_pWorld = nullptr;
 InterfaceTable* ft;
 
 // A struct to hold data used to calculate each generated sine wave value.
-struct SinWave {
+struct SineWave {
 	int32 m_phase;
 	int32 phase;
+	float freq;
 	int32 i_freq;
 	int32 phaseinc;
 	float sin_val;
@@ -30,22 +31,38 @@ public:
 
 		g_pWorld = world;
 
-		// Initialise variables for sine wave oscillators.
-		int tableSize2 = ft->mSineSize;
-		m_radtoinc = tableSize2 * rtwopi * 65536.0;
-		m_cpstoinc = tableSize2 * SAMPLEDUR * 65536.0;
-		m_lomask = (tableSize2 - 1) << 3;
-		m_phasein = 0.0;
-		waves = (SinWave*)RTAlloc(world, m_num_waves * sizeof(SinWave));
-		if (waves == NULL) {
-			set_calc_function<EmergentUGen, &EmergentUGen::clear>();
+		bool valid = true;
+
+		if (m_num_waves < 1) {
 			if (world->mVerbosity > -2) {
-				Print("Failed to allocate memory for ugen.\n");
+				Print("There must be at least one sine wave in the output.\nFor Automatone, this is controlled by num_columns and num_rows, and for Flock, num_boids. These values must all be at least 1\n");
 			}
-			return;
+			valid = false;
 		}
-		for (int i = 0; i < m_num_waves; i++) {
-			waves[i].m_phase = (int32)(m_phasein * m_radtoinc);
+
+		if (valid) {
+			// Initialise variables for sine wave oscillators.
+			int tableSize2 = ft->mSineSize;
+			m_radtoinc = tableSize2 * rtwopi * 65536.0;
+			m_cpstoinc = tableSize2 * SAMPLEDUR * 65536.0;
+			m_lomask = (tableSize2 - 1) << 3;
+			m_phasein = 0.0;
+			waves = (SineWave*)RTAlloc(world, m_num_waves * sizeof(SineWave));
+			if (waves == NULL) {
+				if (world->mVerbosity > -2) {
+					Print("Failed to allocate memory for ugen.\n");
+				}
+				valid = false;
+			}
+		}
+		if (valid) {
+			for (int i = 0; i < m_num_waves; i++) {
+				waves[i].m_phase = (int32)(m_phasein * m_radtoinc);
+			}
+		}
+		else {
+			set_calc_function<EmergentUGen, &EmergentUGen::clear>();
+			return;
 		}
 	}
 
@@ -66,7 +83,7 @@ protected:
 	double m_cpstoinc;
 	int32 m_lomask;
 	// Struct pointers to hold the state of each frequency partial.
-	SinWave* waves;
+	SineWave* waves;
 	// A reference to this UGen to simplify some data access.
 	const Unit* unit = this;
 	// A shortcut to the world struct to simplify some further data access.
@@ -118,23 +135,95 @@ protected:
 
 struct ElementaryCA : public EmergentUGen {
 public:
-	ElementaryCA() : EmergentUGen((int)in0(6), (int)in0(3) * (int)in0(4)) {
-		m_partials_flags = (int*)RTAlloc(world, m_num_columns * m_num_rows * sizeof(int));
-		if (m_partials_flags == NULL) {
-			set_calc_function<EmergentUGen, &ElementaryCA::clear>();
+	ElementaryCA() : EmergentUGen((int)in0(6), (int)in0(3) * (int)in0(4) + 1) {
+		bool valid = true;
+		// 101 here to accomodate blank first spot in waves array
+		if (m_num_waves > 101) {
 			if (world->mVerbosity > -2) {
-				Print("Failed to allocate memory for ugen.\n");
+				// 100 here to gloss over the blank first spot in the message
+				Print("The value of num_columns multiplied by the value of num_rows must be no more than 100.\n");
 			}
+			valid = false;
+		}
+
+		if (valid) {
+			m_partials_flags = (int*)RTAlloc(world, m_num_waves * sizeof(int));
+			if (m_partials_flags == NULL) {
+				if (world->mVerbosity > -2) {
+					Print("Failed to allocate memory for ugen.\n");
+				}
+				valid = false;
+			}
+		}
+
+		if (valid && !m_random) {
+			// Initialise a list of flags to enable various frequency partials in the final output.
+			if (!decode_partials_flags()) {
+				if (world->mVerbosity > -2) {
+					Print("The length of the decoded_partials array must match the value of num_columns.\n");
+				}
+				valid = false;
+			}
+		}
+
+		if (valid && (m_wolfram_code < 0 || m_wolfram_code > 255)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of wolfram_code must be between 0 and 255 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_num_columns < 1 || m_num_rows < 1)) {
+			if (world->mVerbosity > -2) {
+				Print("The values of num_columns and num_rows must each be at least 1.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_width < 0.0 || m_width > 2.0)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of m_width must be between 0.0 and 2.0 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_odd_skew < -0.99 || m_odd_skew > 0.99)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of odd_skew must be between -0.99 and 0.99 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_even_skew < -0.99 || m_even_skew > 0.99)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of even_skew must be between -0.99 and 0.99 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_amp_tilt < -1.0 || m_amp_tilt > 3.0)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of amp_tilt must be between -1.0 and 3.0 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_balance < -1.0 || m_balance > 1.0)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of balance must be between -1.0 and 1.0 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid) {
+			run_automaton();
+			set_calc_function<ElementaryCA, &ElementaryCA::next_a>();
+		  next_a(1);
+	  }
+		else {
+			set_calc_function<EmergentUGen, &ElementaryCA::clear>();
 			return;
 		}
-		if (!m_random) {
-			// Initialise a list of flags to enable various frequency partials in the final output.
-			decode_partials_flags();
-		}
-		run_automaton();
-		set_calc_function<ElementaryCA, &ElementaryCA::next_a>();
-
-		next_a(1);
 	}
 
 	~ElementaryCA() {
@@ -163,6 +252,8 @@ private:
 		with incoming values specifying which of the first few partials to enable/disable.
 	*/
 	int* m_partials_flags;
+	// The highest partial frequency allowed whilst avoiding aliasing.
+	const float max_partial_frequency = 0.48 * world->mSampleRate;
 	// The cellular automaton that runs to calculate the final arrangement of partials.
 	Automaton automaton;
 
@@ -174,14 +265,15 @@ private:
 		SynthDefs without this workaround, the implementation of extracting these
 		partials flags can be changed if desired.
 	*/
-	void decode_partials_flags() {
+	bool decode_partials_flags() {
 		int i = 0;
 		int encoded_value = (int)in0(5);
 		while (encoded_value >= 0 && i < m_num_columns) {
-			m_partials_flags[m_num_columns - 1 - i] = encoded_value % 2;
+			m_partials_flags[m_num_columns - i] = encoded_value % 2;
 			encoded_value = encoded_value / 2;
 			i++;
 		}
+		return i == m_num_columns;
 	}
 
 	void run_automaton() {
@@ -194,7 +286,7 @@ private:
 		}
 		else {
 			for (int i = 0; i < m_num_columns; i++) {
-				initial_state.set(i, m_partials_flags[i]);
+				initial_state.set(i, m_partials_flags[i+1]);
 			}
 		}
 		automaton.init(m_wolfram_code, m_num_columns, m_num_rows, initial_state);
@@ -207,79 +299,151 @@ private:
 		float* outBuf = out(0);
 		float freqin = in0(1);
 		float phasein = 0.0;
+		int active_partials = 1;
+		if (freqin < 0.0) {
+			if (world->mVerbosity > -2) {
+				Print("The value of freq must be greater than zero.\n");
+			}
+			return;
+		}
 
-		// Prevent adding partials at or above the Nyquist frequency, to avoid aliasing.
-		int max_partials = (int)(((0.48 * world->mSampleRate) - freqin) / freqin);
-		int active_waves = std::min(m_num_waves, max_partials);
+		// Set the frequency of the fundamental.
+		set_partial_frequency_ratio(freqin, 1, 1.0);
+		// Set the frequencies of the partials (based on width and skew parameters).
+		for (int i = 2; i < m_num_waves; i++) {
+			float ii = i;
+			if (i % 2 == 0) {
+				ii += m_even_skew;
+			}
+			else {
+				ii += m_odd_skew;
+			}
+			if (set_partial_frequency_ratio(freqin, i, powf(ii, m_width))) {
+				active_partials = i;
+			}
+		}
 
-		for (int i = 0; i < active_waves; i++) {
+		for (int i = 1; i < m_num_waves; i++) {
 			waves[i].phase = waves[i].m_phase;
 		}
 		int32 lomask = m_lomask;
 
 		// Store automaton state in partials flags array.
-		automaton.store(m_partials_flags, active_waves);
+		automaton.store(m_partials_flags, active_partials);
 
 		for (int i = 0; i < inNumSamples; ++i) {
 			float out_val = 0.0;
-			for (int j = 0; j < active_waves; j++) {
-				if (i == 0) {
-					waves[j].amp = 0.0;
-						waves[j].amp = powf(j + 1, -m_amp_tilt);// * powf(e.filter, i);
-						if (j % 2 == 0) {
-							if (m_balance > 0.0) {
-								waves[j].amp *= 1.0 - m_balance;
-							}
+			float total = waves[1].amp = 1.0;
+			// Set the amplitudes of the partials.
+			for (int j = 2; j < m_num_waves; j++) {
+				waves[j].amp = 0.0;
+				if (j <= active_partials) {
+					waves[j].amp = powf(j, -m_amp_tilt);// * powf(e.filter, i);
+					if (j % 2 == 0) {
+						if (m_balance > 0.0) {
+							waves[j].amp *= 1.0 - m_balance;
 						}
-						else {
-							if (m_balance < 0.0) {
-								waves[j].amp *= 1.0 + m_balance;
-							}
+					}
+					else {
+						if (m_balance < 0.0) {
+							waves[j].amp *= 1.0 + m_balance;
 						}
-
-					waves[j].i_freq = (int32)(m_cpstoinc * partial_frequency(freqin, j));
-					waves[j].phaseinc = waves[j].i_freq + (int32)(CALCSLOPE(phasein, m_phasein) * m_radtoinc);
-					m_phasein = phasein;
+					}
+					waves[j].amp *= m_partials_flags[j];
+					total += waves[j].amp;
 				}
+			}
+			float norm = std::max((float)(active_partials / m_num_waves - 1), 0.1f);
+			norm = 1.0f + (2.0f) * norm;
+			norm = std::max(total / norm, 0.7f);
+			for (int j = 1; j < m_num_waves; j++) {
+				waves[j].amp /= norm;
+				waves[j].i_freq = (int32)(m_cpstoinc * waves[j].freq);
+				waves[j].phaseinc = waves[j].i_freq + (int32)(CALCSLOPE(phasein, m_phasein) * m_radtoinc);
+				m_phasein = phasein;
 				waves[j].sin_val = lookupi1(table0, table1, waves[j].phase, lomask);
-				out_val += (waves[j].sin_val * waves[j].amp * m_partials_flags[j] * sc_reciprocal((float)active_waves));
+				out_val += (waves[j].sin_val * waves[j].amp * sc_reciprocal((float)active_partials));
 				waves[j].phase += waves[j].phaseinc;
 			}
 			outBuf[i] = out_val;
 		}
 
-		for (int j = 0; j < active_waves; j++) {
-			waves[j].m_phase = waves[j].phase;
+		for (int i = 1; i < m_num_waves; i++) {
+			waves[i].m_phase = waves[i].phase;
 		}
 	}
 
-	float partial_frequency(float freqin, int idx) {
-		float ii = idx + 1;
-		if (idx % 2 == 0) {
-			ii += m_even_skew;
-		}
-		else {
-			ii += m_odd_skew;
-		}
-		return freqin * powf(ii, m_width);
+	bool set_partial_frequency_ratio(float freqin, int partial, float ratio) {
+		float freq = freqin * ratio;
+		waves[partial].freq = freq;
+		return freq < max_partial_frequency;
 	}
 };
 
 struct Flock : public EmergentUGen {
 public:
-	Flock() : EmergentUGen((int)in0(3), (int)in0(4)) {
-		// Initialise a number of 'boids' in the simulation using given limits for speed.
-		for (int i = 0; i < m_num_waves; i++) {
-			float speed = lerp(m_min_speed, m_max_speed, buf_rand(i));
-			float angle = twopi * buf_rand(i);
-			float vx = speed * cos(angle);
-			float vy = speed * sin(angle);
-      bool predator = buf_rand(i) <= m_predator_probability;
-      Boid b((WIDTH / 2.0), (HEIGHT / 2.0), vx, vy, m_max_speed, m_max_force, predator);
-      flock.addBoid(b);
+	Flock() : EmergentUGen((int)in0(2), (int)in0(3)) {
+		bool valid = true;
+		if (m_min_start_speed < 0.0) {
+			if (world->mVerbosity > -2) {
+				Print("The value of min_start_speed must be at least zero.\n");
+			}
+			valid = false;
 		}
-		set_calc_function<Flock, &Flock::next_a>();
-		next_a(1);
+
+		if (valid && m_max_speed < 0.0) {
+			if (world->mVerbosity > -2) {
+				Print("The value of max_speed must be at least zero.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && m_min_start_speed > m_max_speed) {
+			if (world->mVerbosity > -2) {
+				Print("The value of min_start_speed must be less than or equal to the value of max_speed.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && m_max_force <= 0.0) {
+			if (world->mVerbosity > -2) {
+				Print("The value of max_force must be greater than zero.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_note_mod_source != 0 && m_note_mod_source != 1 && m_note_mod_source != 2 && m_note_mod_source != 3)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of note_mod_source must be either 0, 1, 2 or 3.\n");
+			}
+			valid = false;
+		}
+
+		if (valid && (m_predator_probability < 0.0 || m_predator_probability > 1.0)) {
+			if (world->mVerbosity > -2) {
+				Print("The value of predator_probability must be between 0.0 and 1.0 inclusive.\n");
+			}
+			valid = false;
+		}
+
+		if (valid) {
+			// Initialise a number of 'boids' in the simulation using given limits for speed.
+			for (int i = 0; i < m_num_waves; i++) {
+				float speed = lerp(m_min_start_speed, m_max_speed, buf_rand(i));
+				float angle = twopi * buf_rand(i);
+				float vx = speed * cos(angle);
+				float vy = speed * sin(angle);
+				bool predator = buf_rand(i) <= m_predator_probability;
+				Boid b((WIDTH / 2.0), (HEIGHT / 2.0), vx, vy, m_max_speed, m_max_force, predator);
+				flock.addBoid(b);
+			}
+			set_calc_function<Flock, &Flock::next_a>();
+			next_a(1);
+		}
+		else {
+			set_calc_function<EmergentUGen, &Flock::clear>();
+			return;
+		}
 	}
 
 private:
@@ -292,24 +456,30 @@ private:
 	*/
 	BoidFlock flock;
 	// The lower and upper bounds of the allowed starting speed to give to each boid.
-  float m_min_speed = in0(5);
-  float m_max_speed = in0(6);
+  float m_min_start_speed = in0(4);
+  float m_max_speed = in0(5);
 	// The maximum amount of force (eg acceleration) that can be applied to each boid.
-	float m_max_force = in0(7);
+	float m_max_force = in0(6);
 	// The specific property of the boids that is used to modulate the UGen's audio frequency.
-  const int m_note_mod_source = (int)in0(8);
+  const int m_note_mod_source = (int)in0(7);
 	// The probability that a newly created individual boid will become a 'predator'.
-	const float m_predator_probability = in0(10);
+	const float m_predator_probability = in0(9);
 	// The amount by which the chosen property of the boids affects the UGen's audio frequency.
-  float m_note_mod_amount;
-    
+  float m_note_mod_amount = in0(8);
+
 	void next_a(int inNumSamples) {
 		float* table0 = ft->mSineWavetable;
 		float* table1 = table0 + 1;
 		float* outBuf = out(0);
 		float freqin = in0(1);
-		float phasein = in0(2);
-		m_note_mod_amount = in0(9);
+		float phasein = 0.0;
+		m_note_mod_amount = in0(8);
+		if (m_note_mod_amount < 0.0 || m_note_mod_amount > 1.0) {
+			if (world->mVerbosity > -2) {
+				Print("The value of note_mod_amount must be between 0.0 and 1.0 inclusive.\n");
+			}
+			return;
+		}
 		for (int i = 0; i < m_num_waves; i++) {
 			waves[i].phase = waves[i].m_phase;
 		}

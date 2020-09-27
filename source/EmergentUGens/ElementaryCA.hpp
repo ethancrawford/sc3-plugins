@@ -124,18 +124,18 @@ public:
 
   void store(int* m_partials_flags, int active_waves) {
     int iterations = (int)(active_waves / size);
-    int i = 0, j = 0;
+    int i = 0, j = 1;
     bool keep_going = true;
     while (i < iterations && keep_going) {
-      while (j < size && keep_going) {
-        if (((i * size) + j) >= active_waves) {
+      while (j <= size && keep_going) {
+        if (((i * size) + j) >= (active_waves - 1)) {
           keep_going = false;
         }
-        m_partials_flags[(i * size) + j] = (float)space[i].get(j);
+        m_partials_flags[1 + (i * size) + j] = (float)space[i].get(j - 1);
         j++;
       }
       i++;
-      j = 0;
+      j = 1;
     }
   }
 
